@@ -1,40 +1,40 @@
-## Descripción General
+## General Description
 
-El objetivo de este trabajo es asignar eventos a un conjunto de salas, de manera que los eventos en conflicto no se asignen a la misma sala. Para abordar este problema, se utilizó una combinación de técnicas de **coloración greedy** para obtener una estimación inicial del número de salas necesarias y un **modelo matemático de optimización** basado en **Pyomo** para resolver el problema de manera exacta.
+The objective of this work is to assign events to a set of rooms such that conflicting events are not assigned to the same room. To address this problem, a combination of **greedy coloring** techniques was used to obtain an initial estimate of the number of rooms required, and an **optimization mathematical model** based on **Pyomo** was used to solve the problem exactly.
 
-### 1. **Carga de Datos**
+### 1. **Data Loading**
 
-El primer paso consiste en leer y cargar los datos de la instancia desde un archivo de texto. El archivo contiene información sobre los eventos y los conflictos entre ellos. Cada línea describe un conflicto entre dos eventos, lo que se utiliza para construir un grafo donde cada evento es un nodo y los conflictos son aristas entre nodos. Esta estructura de grafo es fundamental para realizar la asignación de eventos a las salas de manera eficiente.
+The first step is to read and load the instance data from a text file. The file contains information about the events and the conflicts between them. Each line describes a conflict between two events, which is used to build a graph where each event is a node and conflicts are edges between nodes. This graph structure is fundamental for efficiently assigning events to rooms.
 
-**Datos clave leídos del archivo:**
+**Key data read from the file:**
 
-- Número de eventos.
-- Número de conflictos.
-- Lista de conflictos (pares de eventos que no pueden compartir la misma sala).
+- Number of events.
+- Number of conflicts.
+- List of conflicts (pairs of events that cannot share the same room).
 
-### 2. **Coloración Greedy (Heurística)**
+### 2. **Greedy Coloring (Heuristic)**
 
-Para obtener una estimación inicial del número de salas necesarias, se aplica una **heurística de coloración greedy**. En este enfoque, cada evento se asigna a un "color" (que representa una sala) de manera que los eventos en conflicto no se asignen al mismo color. El algoritmo avanza de la siguiente manera:
+To get an initial estimate of the number of rooms needed, a **greedy coloring heuristic** is applied. In this approach, each event is assigned a "color" (representing a room) such that conflicting events are not assigned the same color. The algorithm proceeds as follows:
 
-- Se asigna un color al primer evento.
-- Para cada evento posterior, se asigna el primer color disponible que no haya sido usado por sus vecinos (eventos en conflicto).
+- The first event is assigned a color.
+- For each subsequent event, the first available color not used by its neighbors (conflicting events) is assigned.
 
-Este enfoque asegura que no se asignen dos eventos en conflicto a la misma sala, pero no garantiza la asignación más eficiente en términos de número de salas. Sin embargo, el número de colores utilizados por esta heurística sirve como una **límite superior** del número de salas necesarias, que posteriormente se utilizará como restricción en el modelo matemático.
+This approach ensures that no two conflicting events are assigned to the same room but does not guarantee the most efficient room assignment in terms of the number of rooms. However, the number of colors used by this heuristic serves as an **upper bound** for the number of rooms needed, which will later be used as a constraint in the mathematical model.
 
-**Resultado de la heurística greedy:**
+**Result of the greedy heuristic:**
 
-- Se obtiene un número estimado de salas necesario para acomodar todos los eventos, lo que se utiliza como límite superior de salas en el modelo matemático.
+- An estimated number of rooms required to accommodate all events is obtained, which is used as an upper bound on the number of rooms in the mathematical model.
 
-### 3. **Modelo Matemático de Optimización**
+### 3. **Mathematical Optimization Model**
 
-Con la estimación de salas obtenida de la heurística greedy, se procede a construir un modelo de optimización en **Pyomo**, una herramienta de modelado matemático en Python. Este modelo tiene como objetivo asignar los eventos a las salas de manera que se minimice el número total de salas utilizadas, respetando las restricciones de conflictos entre eventos.
+With the room estimate obtained from the greedy heuristic, we proceed to construct an optimization model in **Pyomo**, a mathematical modeling tool in Python. This model aims to assign events to rooms in such a way that the total number of rooms used is minimized, respecting the conflict constraints between events.
 
-#### Variables de Decisión:
+#### Decision Variables:
 
-- **`x[i, r]`**: Variable binaria que indica si el evento `i` está asignado a la sala `r`.
-- **`y[r]`**: Variable binaria que indica si la sala `r` está en uso.
+- **`x[i, r]`**: A binary variable that indicates whether event `i` is assigned to room `r`.
+- **`y[r]`**: A binary variable that indicates whether room `r` is in use.
 
-#### Restricciones:
+#### Constraints:
 
 $$
 \begin{align*}
@@ -48,29 +48,15 @@ $$
 \end{align*}
 $$
 
-1. **Restricción de conflictos**: Los eventos que están en conflicto no pueden ser asignados a la misma sala.
-2. **Uso de salas**: Una sala solo puede estar en uso si al menos un evento está asignado a ella.
+1. **Conflict Constraint**: Events that are in conflict cannot be assigned to the same room.
+2. **Room Usage**: A room can only be in use if at least one event is assigned to it.
 
-### Función Objetivo:
+### Objective Function:
 
-El objetivo es **minimizar el número de salas utilizadas**, es decir, minimizar la suma de las variables `y[r]`, que indican si una sala está en uso o no.
+The objective is to **minimize the number of rooms used**, that is, minimize the sum of the variables `y[r]`, which indicate whether a room is in use or not.
 
-Este modelo matemático es una **programación lineal entera mixta** (MIP) que busca una solución óptima, es decir, la asignación de eventos a salas que minimiza el número total de salas, cumpliendo las restricciones mencionadas.
+This mathematical model is a **Mixed-Integer Linear Programming (MILP)** problem that seeks an optimal solution, i.e., the assignment of events to rooms that minimizes the total number of rooms while satisfying the constraints mentioned above.
 
-### 5. **Resolución con HiGHS**
+### 5. **Solving with CP-SAT**
 
-Con el archivo MPS generado, se utiliza el solver **HiGHS** para resolver el modelo de optimización. **HiGHS** es un solver eficiente para problemas de programación lineal y entera, que permite obtener soluciones exactas para problemas complejos.
-
-Los pasos realizados en esta fase incluyen:
-
-1. **Lectura del archivo MPS**: El modelo exportado en formato MPS es leído por HiGHS.
-2. **Resolución del problema**: HiGHS resuelve el modelo, aplicando técnicas avanzadas de optimización.
-3. **Obtención de la solución**: Una vez resuelto el modelo, se extraen las soluciones para las variables de decisión, que indican la asignación de eventos a salas.
-
-### 6. **Resultados**
-
-Finalmente, los resultados obtenidos con **HiGHS** se presentan de la siguiente manera:
-
-- **Estado del solver**: Informa si el solver ha encontrado una solución factible o si ha terminado con algún error.
-- **Valor objetivo**: Muestra el número mínimo de salas utilizadas según la solución óptima.
-- **Asignación de eventos a salas**: Imprime las asignaciones específicas de cada evento a las salas, lo que permite verificar cómo se han distribuido los eventos de acuerdo con las restricciones de conflicto.
+After several proposals, CP-SAT has shown the best results. I limited the number of variables by obtaining an upper bound on the number of rooms needed. 15 rooms is the best result I could get.
