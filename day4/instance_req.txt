@@ -1,9 +1,7 @@
 # A matrix specifying how often each class-teacher combination needs to meet in specific rooms.
-
 # For instance:
 # A "6" in the third row of the matrix means Class 3 must meet Teacher 4 in Room 1 six times.
 # A "5" in the fifth row means Class 1 must meet Teacher 2 in Room 2 five times.
-
 # The matrix is of the following format:
 # teacher  1 2 3 4
 # --------------------
@@ -27,7 +25,6 @@
 #       3: 3 3 2 1
 #       4: 2 0 1 1 room 4
 # ------------
-
 2  2  1  2  
 1  1  1  2  
 1  1  1  6  
